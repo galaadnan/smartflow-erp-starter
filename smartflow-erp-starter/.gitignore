@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+coverage/
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+postgres-data/
+*.pem
+*.key
+*.crt
