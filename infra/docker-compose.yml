@@ -1,4 +1,5 @@
 services:
+
   postgres:
     image: postgres:16
     container_name: smartflow-postgres
@@ -16,5 +17,30 @@ services:
       timeout: 5s
       retries: 5
 
+
+  backend:
+    image: node:22-alpine
+    container_name: smartflow-backend
+    restart: unless-stopped
+
+    working_dir: /app
+
+    volumes:
+      - ../backend:/app
+
+    env_file:
+      - ../backend/.env
+
+    command: npm run start:dev
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
 volumes:
+
   smartflow_postgres_data:
