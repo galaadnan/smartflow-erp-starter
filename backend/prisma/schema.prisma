@@ -13,6 +13,23 @@ enum UserStatus {
   INACTIVE
 }
 
+enum PermissionKey {
+  USERS_MANAGE
+  CUSTOMERS_READ
+  CUSTOMERS_CREATE
+  CUSTOMERS_UPDATE
+  PRODUCTS_READ
+  PRODUCTS_CREATE
+  PRODUCTS_UPDATE
+  SALES_CREATE
+  SALES_FULFILL
+  INVOICES_READ
+  INVOICES_CREATE
+  PAYMENTS_CREATE
+  EXPENSES_CREATE
+  AUDIT_READ
+}
+
 enum CustomerStatus {
   LEAD
   ACTIVE
@@ -39,8 +56,9 @@ model Company {
   customers Customer[]
   products  Product[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  auditLogs AuditLog[]
 }
 
 model Role {
@@ -50,7 +68,10 @@ model Role {
   description String?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  users   User[]
+
+  users User[]
+
+  permissions RolePermission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,16 +88,19 @@ model User {
   firstName    String
   lastName     String?
   email        String
+  username     String
   passwordHash String
-  status       UserStatus @default(ACTIVE)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  role    Role    @relation(fields: [roleId], references: [id])
+  status      UserStatus @default(ACTIVE)
+  lastLoginAt DateTime?
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role        Role       @relation(fields: [roleId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([companyId, email])
+  @@unique([companyId, username])
   @@index([companyId])
   @@index([roleId])
 }
@@ -123,4 +147,48 @@ model Product {
 
   @@unique([companyId, sku])
   @@index([companyId])
+}
+
+model Permission {
+  id          String        @id @default(uuid())
+  key         PermissionKey @unique
+  description String?
+
+  roles RolePermission[]
+
+  createdAt DateTime @default(now())
+}
+
+model RolePermission {
+  id String @id @default(uuid())
+
+  roleId       String
+  permissionId String
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  companyId String
+  userId    String?
+
+  action   String
+  entity   String
+  entityId String?
+
+  beforeJson Json?
+  afterJson  Json?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([userId])
 }
