@@ -10,8 +10,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(identifier: string, password: string) {
-    const user = await this.usersService.findByIdentifier(identifier);
+  async validateUser(companyId: string, identifier: string, password: string) {
+    const user = await this.usersService.findByIdentifier(companyId, identifier);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -33,8 +33,10 @@ export class AuthService {
     return user;
   }
 
-  async login(identifier: string, password: string) {
-    const user = await this.validateUser(identifier, password);
+  async login(companyId: string, identifier: string, password: string) {
+    const user = await this.validateUser(companyId, identifier, password);
+
+    await this.usersService.updateLastLogin(user.id);
 
     const payload = {
       sub: user.id,

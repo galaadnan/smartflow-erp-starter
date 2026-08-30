@@ -1,22 +1,29 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  AuthenticatedUser,
+  CurrentUser,
+} from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CompaniesService } from './companies.service';
-import { CreateCompanyDto } from './dto/create-company.dto';
 
+@ApiTags('companies')
+@ApiBearerAuth()
 @Controller('companies')
+@UseGuards(JwtAuthGuard)
 export class CompaniesController {
   constructor(
     private readonly companiesService: CompaniesService,
   ) {}
 
   @Get()
-  findAll() {
-    return this.companiesService.findAll();
+  findOwn(@CurrentUser() user: AuthenticatedUser) {
+    return this.companiesService.findOwn(user.companyId);
   }
 
   @Post()
-  create(
-    @Body() createCompanyDto: CreateCompanyDto,
-  ) {
-    return this.companiesService.create(createCompanyDto);
+  @ApiOperation({ summary: 'Disabled — company creation requires platform-level authorization not yet implemented' })
+  create() {
+    throw new ForbiddenException('Company creation is not available via this endpoint');
   }
 }

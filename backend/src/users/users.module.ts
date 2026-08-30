@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { PermissionGuard } from '../auth/guards/permission.guard';
 import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
 
 @Module({
-  providers: [UsersService],
+  providers: [UsersService, PermissionGuard],
   controllers: [UsersController],
   exports: [UsersService],
 })

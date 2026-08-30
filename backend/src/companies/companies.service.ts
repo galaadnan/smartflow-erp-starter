@@ -8,8 +8,10 @@ export class CompaniesService {
     private readonly prisma: PrismaService,
   ) {}
 
-  findAll() {
-    return this.prisma.company.findMany();
+  findOwn(companyId: string) {
+    return this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
   }
 
   create(createCompanyDto: CreateCompanyDto) {
