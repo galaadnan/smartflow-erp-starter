@@ -1,9 +1,9 @@
 import { Controller, ForbiddenException, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
-  AuthenticatedUser,
   CurrentUser,
 } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CompaniesService } from './companies.service';
 
