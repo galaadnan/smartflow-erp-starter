@@ -32,6 +32,15 @@ enum PermissionKey {
   AUDIT_READ
 }
 
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
 enum SalesOrderStatus {
   DRAFT
   CONFIRMED
@@ -64,6 +73,7 @@ model Company {
   customers   Customer[]
   products    Product[]
   salesOrders SalesOrder[]
+  invoices    Invoice[]
 
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -128,6 +138,7 @@ model Customer {
 
   company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   salesOrders SalesOrder[]
+  invoices    Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,6 +182,7 @@ model SalesOrder {
   company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer Customer         @relation(fields: [customerId], references: [id])
   items    SalesOrderItem[]
+  invoices Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,6 +207,32 @@ model SalesOrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  companyId   String
+  customerId  String
+  salesOrderId String?
+  invoiceNo   String
+
+  status      InvoiceStatus @default(DRAFT)
+  total       Decimal       @db.Decimal(12, 2)
+  paidAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  balance     Decimal       @db.Decimal(12, 2)
+  dueDate     DateTime
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  salesOrder SalesOrder? @relation(fields: [salesOrderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, invoiceNo])
+  @@index([companyId])
+  @@index([customerId])
+  @@index([status])
 }
 
 model Permission {
