@@ -28,8 +28,17 @@ enum PermissionKey {
   INVOICES_READ
   INVOICES_CREATE
   PAYMENTS_CREATE
+  PAYMENTS_READ
+  PAYMENTS_UPDATE
+  PAYMENTS_DELETE
   EXPENSES_CREATE
   AUDIT_READ
+  INVENTORY_READ
+  INVENTORY_CREATE
+  REPORTS_READ
+  SETTINGS_READ
+  SETTINGS_UPDATE
+  TENANTS_MANAGE
 }
 
 enum InvoiceStatus {
@@ -58,6 +67,27 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum InventoryTransactionType {
+  IN
+  OUT
+  ADJUSTMENT
+  RETURN
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
 model Company {
   id        String  @id @default(uuid())
   name      String
@@ -68,16 +98,19 @@ model Company {
   currency  String  @default("SAR")
   timezone  String  @default("Asia/Riyadh")
 
-  users       User[]
-  roles       Role[]
-  customers   Customer[]
-  products    Product[]
-  salesOrders SalesOrder[]
-  invoices    Invoice[]
+  users                  User[]
+  roles                  Role[]
+  customers              Customer[]
+  products               Product[]
+  salesOrders            SalesOrder[]
+  invoices               Invoice[]
+  inventoryTransactions  InventoryTransaction[]
+  payments               Payment[]
+  settings               CompanySettings?
+  auditLogs              AuditLog[]
 
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  auditLogs AuditLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Role {
@@ -161,8 +194,9 @@ model Product {
   reorderLevel Int           @default(5)
   status       ProductStatus @default(ACTIVE)
 
-  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  salesOrderItems SalesOrderItem[]
+  company               Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesOrderItems       SalesOrderItem[]
+  inventoryTransactions InventoryTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -210,21 +244,22 @@ model SalesOrderItem {
 }
 
 model Invoice {
-  id          String        @id @default(uuid())
-  companyId   String
-  customerId  String
+  id           String  @id @default(uuid())
+  companyId    String
+  customerId   String
   salesOrderId String?
-  invoiceNo   String
+  invoiceNo    String
 
-  status      InvoiceStatus @default(DRAFT)
-  total       Decimal       @db.Decimal(12, 2)
-  paidAmount  Decimal       @default(0) @db.Decimal(12, 2)
-  balance     Decimal       @db.Decimal(12, 2)
-  dueDate     DateTime
+  status     InvoiceStatus @default(DRAFT)
+  total      Decimal       @db.Decimal(12, 2)
+  paidAmount Decimal       @default(0) @db.Decimal(12, 2)
+  balance    Decimal       @db.Decimal(12, 2)
+  dueDate    DateTime
 
   company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer   Customer    @relation(fields: [customerId], references: [id])
   salesOrder SalesOrder? @relation(fields: [salesOrderId], references: [id])
+  payments   Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -233,6 +268,63 @@ model Invoice {
   @@index([companyId])
   @@index([customerId])
   @@index([status])
+}
+
+model InventoryTransaction {
+  id        String                   @id @default(uuid())
+  companyId String
+  productId String
+  type      InventoryTransactionType
+  quantity  Int
+  reference String?
+  notes     String?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  companyId     String
+  invoiceId     String
+  amount        Decimal       @db.Decimal(12, 2)
+  paymentMethod PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  paymentDate   DateTime      @default(now())
+  notes         String?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([invoiceId])
+}
+
+model CompanySettings {
+  id            String  @id @default(uuid())
+  companyId     String  @unique
+  companyName   String?
+  logo          String?
+  phone         String?
+  email         String?
+  address       String?
+  currency      String  @default("SAR")
+  timezone      String  @default("Asia/Riyadh")
+  invoicePrefix String  @default("INV")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Permission {
@@ -264,12 +356,13 @@ model AuditLog {
   companyId String
   userId    String?
 
-  action   String
-  entity   String
-  entityId String?
+  action    String
+  entity    String
+  entityId  String?
 
   beforeJson Json?
   afterJson  Json?
+  ipAddress  String?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -277,4 +370,6 @@ model AuditLog {
 
   @@index([companyId])
   @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
 }

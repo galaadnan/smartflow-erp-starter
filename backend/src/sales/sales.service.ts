@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { SalesOrderStatus } from '../../generated/prisma/enums';
+import { InventoryTransactionType, SalesOrderStatus } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSalesOrderDto } from './dto/create-sales-order.dto';
 import { SalesQueryDto } from './dto/sales-query.dto';
@@ -153,7 +153,46 @@ export class SalesService {
   }
 
   async setStatus(companyId: string, id: string, status: SalesOrderStatus) {
-    await this.findOne(companyId, id);
+    const order = await this.findOne(companyId, id);
+
+    if (status === SalesOrderStatus.CONFIRMED && order.status !== SalesOrderStatus.CONFIRMED) {
+      return this.prisma.$transaction(async (tx) => {
+        const updated = await tx.salesOrder.update({
+          where: { id },
+          data: { status },
+        });
+
+        for (const item of order.items) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
+          if (!product) continue;
+
+          if (product.stockQty < item.quantity) {
+            throw new BadRequestException(
+              `Insufficient stock for product ${product.name}. Available: ${product.stockQty}`,
+            );
+          }
+
+          await tx.inventoryTransaction.create({
+            data: {
+              companyId,
+              productId: item.productId,
+              type: InventoryTransactionType.OUT,
+              quantity: item.quantity,
+              reference: `SO-${id}`,
+              notes: `Auto-deducted on sales order confirmation`,
+            },
+          });
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stockQty: { decrement: item.quantity } },
+          });
+        }
+
+        return updated;
+      });
+    }
+
     return this.prisma.salesOrder.update({
       where: { id },
       data: { status },

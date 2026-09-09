@@ -10,6 +10,12 @@ import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { PaymentsModule } from './payments/payments.module';
+import { ReportsModule } from './reports/reports.module';
+import { SettingsModule } from './settings/settings.module';
+import { AuditModule } from './audit/audit.module';
+import { TenantsModule } from './tenants/tenants.module';
 
 @Module({
   imports: [
@@ -24,6 +30,12 @@ import { InvoicesModule } from './invoices/invoices.module';
     ProductsModule,
     SalesModule,
     InvoicesModule,
+    InventoryModule,
+    PaymentsModule,
+    ReportsModule,
+    SettingsModule,
+    AuditModule,
+    TenantsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
