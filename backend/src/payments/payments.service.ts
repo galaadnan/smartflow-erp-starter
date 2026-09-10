@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Decimal } from '../../generated/prisma/runtime/library';
+import { Prisma } from '../../generated/prisma/client';
 import { InvoiceStatus, PaymentStatus } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -70,7 +70,7 @@ export class PaymentsService {
       throw new BadRequestException('Invoice is already fully paid');
     }
 
-    const amount = new Decimal(dto.amount);
+    const amount = new Prisma.Decimal(dto.amount);
     if (amount.greaterThan(invoice.balance)) {
       throw new BadRequestException(
         `Payment amount ${amount} exceeds outstanding balance ${invoice.balance}`,
